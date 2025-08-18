@@ -1,9 +1,0 @@
-[build]
-  base = "stock-app/frontend"
-  command = "npm install && npm run build"
-  publish = "stock-app/frontend/build"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
