@@ -17,7 +17,7 @@ export default function Watchlist() {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`http://localhost:5000/api/stocks?exchange=${exchange}`);
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/stocks?exchange=${exchange}`);
         const formattedStocks = response.data[exchange].map(stock => ({
           value: stock,
           label: stock
