@@ -1,7 +1,6 @@
 [build]
-  base = "stock-app/frontend"
   command = "npm install && npm run build"
-  publish = "stock-app/frontend/build"
+  publish = "build"
 
 [[redirects]]
   from = "/*"
