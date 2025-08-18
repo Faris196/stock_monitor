@@ -17,7 +17,7 @@ export default function Analysis() {
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
-        const response = await axios.post('${process.env.REACT_APP_API_URL}/api/analyze', {
+        const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/analyze`, {
           symbol: symbol
         });
         
