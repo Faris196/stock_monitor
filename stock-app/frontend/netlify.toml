@@ -1,7 +1,7 @@
 [build]
   base = "stock-app/frontend"
   publish = "stock-app/frontend/build"
-  command = "cd stock-app/frontend && npm run build"
+  command = "cd stock-app/frontend && npm install && CI= npm run build"  # CI= fixes potential warnings
 
 [[redirects]]
   from = "/*"
