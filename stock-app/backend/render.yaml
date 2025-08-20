@@ -2,7 +2,15 @@ services:
   - type: web
     name: stock-backend
     env: python
-    python:
-      version: 3.10.12
+    plan: free
     buildCommand: pip install -r app_requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn backend:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: 1
+      - key: MPLBACKEND
+        value: Agg
