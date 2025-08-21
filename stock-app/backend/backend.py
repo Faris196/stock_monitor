@@ -127,7 +127,7 @@ def analyze_stock():
 def get_stock_fundamentals(stock_symbol: str) -> dict:
     """Fetch comprehensive fundamental data for a stock"""
     try:
-        time.sleep(1+ random.uniform(0,1))
+        time.sleep(5+ random.uniform(0,2))
         stock = yf.Ticker(stock_symbol)
         info = stock.info
         
