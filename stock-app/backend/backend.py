@@ -10,6 +10,7 @@ import base64
 from datetime import datetime, timedelta
 import requests
 import pandas as pd
+import os
 
 # Configuration
 genai.configure(api_key="AIzaSyA5sJKDZ9khlusbuwjGyVzqZcjmoNM0uqU")  # Replace with your actual API key
