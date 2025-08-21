@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 import requests
 import pandas as pd
 import os
+import time
+import random
 
 # Configuration
 genai.configure(api_key="AIzaSyA5sJKDZ9khlusbuwjGyVzqZcjmoNM0uqU")  # Replace with your actual API key
@@ -92,7 +94,8 @@ def analyze_stock():
         # Get fundamentals
         fundamentals = get_stock_fundamentals(symbol)
         if not fundamentals:
-            return jsonify({'error': 'Failed to fetch stock data'}), 400
+            return jsonify({'error': 'Rate limited by Yahoo Finance. Please try again in a moment.',
+                'retryable': True}), 429
         
         # Get news
         news_headlines, _ = get_marketaux_news(symbol.split('.')[0])
@@ -124,6 +127,7 @@ def analyze_stock():
 def get_stock_fundamentals(stock_symbol: str) -> dict:
     """Fetch comprehensive fundamental data for a stock"""
     try:
+        time.sleep(1+ random.uniform(0,1))
         stock = yf.Ticker(stock_symbol)
         info = stock.info
         
