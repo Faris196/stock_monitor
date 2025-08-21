@@ -127,7 +127,31 @@ def analyze_stock():
 def get_stock_fundamentals(stock_symbol: str) -> dict:
     """Fetch comprehensive fundamental data for a stock"""
     try:
-        time.sleep(5+ random.uniform(0,2))
+        FMP_API_KEY = os.environ.get('SsspwjHgB1MqLTUmeGEhJOUblO6L0ldv')
+        
+        if FMP_API_KEY:
+            # Use Financial Modeling Prep
+            symbol = stock_symbol.split('.')[0]  # Remove .NS/.BO
+            url = f"https://financialmodelingprep.com/api/v3/profile/{symbol}?apikey={FMP_API_KEY}"
+            
+            response = requests.get(url, timeout=10)
+            data = response.json()
+            
+            if data and isinstance(data, list) and len(data) > 0:
+                stock_data = data[0]
+                return {
+                    "Name": stock_data.get("companyName", symbol),
+                    "Sector": stock_data.get("sector", "N/A"),
+                    "Industry": stock_data.get("industry", "N/A"),
+                    "Current Price": stock_data.get("price", "N/A"),
+                    "Market Cap": stock_data.get("mktCap", "N/A"),
+                    "PE Ratio": stock_data.get("pe", "N/A"),
+                    "Price to Book": stock_data.get("pb", "N/A"),
+                    "Debt to Equity": stock_data.get("debtToEquity", "N/A"),
+                }
+        
+        # Fallback to Yahoo Finance with longer delay if FMP fails or no API key
+        time.sleep(3 + random.uniform(0, 2))  # 3-5 second delay
         stock = yf.Ticker(stock_symbol)
         info = stock.info
         
@@ -136,12 +160,9 @@ def get_stock_fundamentals(stock_symbol: str) -> dict:
         price_change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100 if not hist.empty else 0
         
         data = {
-            # Basic Info
             "Name": info.get("shortName", stock_symbol),
             "Sector": info.get("sector", "N/A"),
             "Industry": info.get("industry", "N/A"),
-            
-            # Valuation Metrics
             "Current Price": info.get("currentPrice", "N/A"),
             "Market Cap": info.get("marketCap", "N/A"),
             "PE Ratio": info.get("trailingPE", "N/A"),
@@ -151,6 +172,7 @@ def get_stock_fundamentals(stock_symbol: str) -> dict:
         }
         
         return {k: v for k, v in data.items() if v != "N/A"}
+        
     except Exception as e:
         print(f"Error fetching fundamentals: {e}")
         return {}
