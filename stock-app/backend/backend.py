@@ -125,45 +125,48 @@ def analyze_stock():
         return jsonify({'error': str(e)}), 500
 
 def get_stock_fundamentals(stock_symbol: str) -> dict:
-    """Fetch comprehensive fundamental data for a stock"""
+    """Fetch comprehensive fundamental data for a stock using multiple sources"""
     try:
-        FMP_API_KEY = os.environ.get('FMP_API_KEY')
+        # First try NSEpy for Indian stocks
+        if stock_symbol.endswith('.NS') or stock_symbol.endswith('.BO'):
+            try:
+                symbol = stock_symbol.split('.')[0]  # Get just the symbol part
+                
+                # Use NSEpy for Indian stocks
+                from nsepy import get_quote
+                quote = get_quote(symbol)
+                
+                if quote and quote.get('lastPrice'):
+                    return {
+                        "Name": quote.get('companyName', symbol),
+                        "Sector": "N/A",  # NSEpy doesn't provide sector
+                        "Industry": "N/A",  # NSEpy doesn't provide industry
+                        "Current Price": quote.get('lastPrice', "N/A"),
+                        "Market Cap": quote.get('marketCap', "N/A"),
+                        "PE Ratio": quote.get('pEratio', "N/A"),
+                        "Price to Book": quote.get('pb', "N/A"),
+                        "Debt to Equity": "N/A",  # NSEpy doesn't provide this
+                        "Price Change (%)": quote.get('pChange', "N/A"),
+                    }
+            except Exception as nse_error:
+                print(f"NSEpy failed for {stock_symbol}: {nse_error}")
+                # Continue to Yahoo Finance fallback
         
-        if FMP_API_KEY:
-            # Use Financial Modeling Prep
-            symbol = stock_symbol.split('.')[0]  # Remove .NS/.BO
-            url = f"https://financialmodelingprep.com/api/v3/profile/{symbol}?apikey={FMP_API_KEY}"
-            
-            response = requests.get(url, timeout=10)
-            data = response.json()
-            
-            if data and isinstance(data, list) and len(data) > 0:
-                stock_data = data[0]
-                return {
-                    "Name": stock_data.get("companyName", symbol),
-                    "Sector": stock_data.get("sector", "N/A"),
-                    "Industry": stock_data.get("industry", "N/A"),
-                    "Current Price": stock_data.get("price", "N/A"),
-                    "Market Cap": stock_data.get("mktCap", "N/A"),
-                    "PE Ratio": stock_data.get("pe", "N/A"),
-                    "Price to Book": stock_data.get("pb", "N/A"),
-                    "Debt to Equity": stock_data.get("debtToEquity", "N/A"),
-                }
+        # Fallback to Yahoo Finance with significant delay
+        time.sleep(8 + random.uniform(0, 4))  # 8-12 second delay to avoid rate limiting
         
-        # Fallback to Yahoo Finance with longer delay if FMP fails or no API key
-        time.sleep(3 + random.uniform(0, 2))  # 3-5 second delay
         stock = yf.Ticker(stock_symbol)
         info = stock.info
         
         # Get historical data for trend analysis
-        hist = stock.history(period="1y")
+        hist = stock.history(period="1mo")  # Reduced to 1 month for faster response
         price_change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100 if not hist.empty else 0
         
         data = {
             "Name": info.get("shortName", stock_symbol),
             "Sector": info.get("sector", "N/A"),
             "Industry": info.get("industry", "N/A"),
-            "Current Price": info.get("currentPrice", "N/A"),
+            "Current Price": info.get("currentPrice", info.get("regularMarketPrice", "N/A")),
             "Market Cap": info.get("marketCap", "N/A"),
             "PE Ratio": info.get("trailingPE", "N/A"),
             "Price to Book": info.get("priceToBook", "N/A"),
@@ -171,10 +174,11 @@ def get_stock_fundamentals(stock_symbol: str) -> dict:
             "Price Change (%)": round(price_change, 2),
         }
         
+        # Filter out N/A values
         return {k: v for k, v in data.items() if v != "N/A"}
         
     except Exception as e:
-        print(f"Error fetching fundamentals: {e}")
+        print(f"Error fetching fundamentals for {stock_symbol}: {e}")
         return {}
 
 def get_marketaux_news(stock_symbol: str, num_results: int = 3) -> tuple:
