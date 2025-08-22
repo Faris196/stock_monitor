@@ -15,8 +15,8 @@ import time
 import random
 
 # Configuration
-genai.configure(api_key="AIzaSyA5sJKDZ9khlusbuwjGyVzqZcjmoNM0uqU")  # Replace with your actual API key
-MARKETAUX_API_KEY = "4UDxFAYYalVR8j9MAEza7RdEBlu0dgrG8lrXSes6"      # Replace with your actual API key
+genai.configure(api_key=os.environ.get('GENAI_API_KEY'))
+MARKETAUX_API_KEY = os.environ.get('MARKETAUX_API_KEY')
 
 
 app = Flask(__name__)
@@ -127,7 +127,7 @@ def analyze_stock():
 def get_stock_fundamentals(stock_symbol: str) -> dict:
     """Fetch comprehensive fundamental data for a stock"""
     try:
-        FMP_API_KEY = os.environ.get('SsspwjHgB1MqLTUmeGEhJOUblO6L0ldv')
+        FMP_API_KEY = os.environ.get('FMP_API_KEY')
         
         if FMP_API_KEY:
             # Use Financial Modeling Prep
