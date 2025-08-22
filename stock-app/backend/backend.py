@@ -159,56 +159,153 @@ def analyze_stock():
         }), 500
 
 def get_stock_fundamentals(stock_symbol: str) -> dict:
-    """Fetch comprehensive fundamental data for a stock with timeout"""
+    """Fetch comprehensive fundamental data for a stock with maximum metrics"""
     try:
         # Reduced delay to prevent timeouts
         delay = 3 + random.uniform(0, 2)  # 3-5 second delay
         print(f"Waiting {delay:.2f} seconds for {stock_symbol}")
         time.sleep(delay)
         
-        # Add timeout to yfinance calls
         stock = yf.Ticker(stock_symbol)
         
-        # Get info with timeout handling
+        # Get all available info
         try:
             info = stock.info
         except Exception as e:
             print(f"Error getting info for {stock_symbol}: {e}")
             info = {}
         
-        # Get historical data with shorter period and timeout
-        price_change = 0
+        # Get historical data for multiple timeframes
+        price_change_data = {}
         try:
-            hist = stock.history(period="1w")  # Only 1 week for speed
-            if not hist.empty:
-                price_change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100
+            # Short-term changes
+            hist_1mo = stock.history(period="1mo")
+            hist_3mo = stock.history(period="3mo")
+            hist_1y = stock.history(period="1y")
+            
+            # Calculate various price changes
+            if not hist_1mo.empty and len(hist_1mo) > 1:
+                price_change_data['1mo_change'] = ((hist_1mo['Close'].iloc[-1] - hist_1mo['Close'].iloc[0]) / hist_1mo['Close'].iloc[0]) * 100
+            
+            if not hist_3mo.empty and len(hist_3mo) > 1:
+                price_change_data['3mo_change'] = ((hist_3mo['Close'].iloc[-1] - hist_3mo['Close'].iloc[0]) / hist_3mo['Close'].iloc[0]) * 100
+            
+            if not hist_1y.empty and len(hist_1y) > 1:
+                price_change_data['1y_change'] = ((hist_1y['Close'].iloc[-1] - hist_1y['Close'].iloc[0]) / hist_1y['Close'].iloc[0]) * 100
+                
         except Exception as e:
             print(f"Error getting history for {stock_symbol}: {e}")
         
+        # Get additional data points
+        try:
+            recommendations = stock.recommendations
+            if recommendations is not None and not recommendations.empty:
+                latest_recommendation = recommendations.iloc[-1] if len(recommendations) > 0 else {}
+        except:
+            latest_recommendation = {}
+        
+        # Comprehensive data extraction
         data = {
-            "Name": info.get("shortName", stock_symbol),
+            # Basic Information
+            "Name": info.get("shortName", info.get("longName", stock_symbol)),
+            "Symbol": stock_symbol,
             "Sector": info.get("sector", "N/A"),
             "Industry": info.get("industry", "N/A"),
+            "Exchange": info.get("exchange", "N/A"),
+            "Currency": info.get("currency", "N/A"),
+            
+            # Price Data
             "Current Price": info.get("currentPrice", info.get("regularMarketPrice", "N/A")),
+            "Previous Close": info.get("previousClose", "N/A"),
+            "Open Price": info.get("open", "N/A"),
+            "Day High": info.get("dayHigh", "N/A"),
+            "Day Low": info.get("dayLow", "N/A"),
+            "52 Week High": info.get("fiftyTwoWeekHigh", "N/A"),
+            "52 Week Low": info.get("fiftyTwoWeekLow", "N/A"),
+            
+            # Volume Data
+            "Volume": info.get("volume", "N/A"),
+            "Average Volume": info.get("averageVolume", "N/A"),
             "Market Cap": info.get("marketCap", "N/A"),
+            
+            # Valuation Metrics
             "PE Ratio": info.get("trailingPE", info.get("forwardPE", "N/A")),
+            "PEG Ratio": info.get("pegRatio", "N/A"),
             "Price to Book": info.get("priceToBook", "N/A"),
+            "Price to Sales": info.get("priceToSalesTrailing12Months", "N/A"),
+            "EPS": info.get("trailingEps", info.get("forwardEps", "N/A")),
+            "EPS Growth": info.get("earningsGrowth", "N/A"),
+            
+            # Financial Health
             "Debt to Equity": info.get("debtToEquity", "N/A"),
-            "Price Change (%)": round(price_change, 2),
+            "Current Ratio": info.get("currentRatio", "N/A"),
+            "Quick Ratio": info.get("quickRatio", "N/A"),
+            "Return on Equity": info.get("returnOnEquity", "N/A"),
+            "Return on Assets": info.get("returnOnAssets", "N/A"),
+            "Profit Margins": info.get("profitMargins", "N/A"),
+            
+            # Dividend Data
+            "Dividend Yield": info.get("dividendYield", "N/A"),
+            "Dividend Rate": info.get("dividendRate", "N/A"),
+            "Payout Ratio": info.get("payoutRatio", "N/A"),
+            "Dividend Date": info.get("dividendDate", "N/A"),
+            "Ex-Dividend Date": info.get("exDividendDate", "N/A"),
+            
+            # Growth Metrics
+            "Revenue Growth": info.get("revenueGrowth", "N/A"),
+            "Earnings Growth": info.get("earningsGrowth", "N/A"),
+            "EBITDA": info.get("ebitda", "N/A"),
+            "EBITDA Margins": info.get("ebitdaMargins", "N/A"),
+            
+            # Analyst Ratings
+            "Target Price": info.get("targetMeanPrice", "N/A"),
+            "Target High Price": info.get("targetHighPrice", "N/A"),
+            "Target Low Price": info.get("targetLowPrice", "N/A"),
+            "Recommendation": info.get("recommendationKey", "N/A"),
+            "Number of Analysts": info.get("numberOfAnalystOpinions", "N/A"),
+            
+            # Price Performance
+            "1 Month Change": round(price_change_data.get('1mo_change', 0), 2),
+            "3 Month Change": round(price_change_data.get('3mo_change', 0), 2),
+            "1 Year Change": round(price_change_data.get('1y_change', 0), 2),
+            "Beta": info.get("beta", "N/A"),
+            
+            # Additional Metrics
+            "Book Value": info.get("bookValue", "N/A"),
+            "Enterprise Value": info.get("enterpriseValue", "N/A"),
+            "Enterprise to EBITDA": info.get("enterpriseToEbitda", "N/A"),
+            "Enterprise to Revenue": info.get("enterpriseToRevenue", "N/A"),
+            "Gross Margins": info.get("grossMargins", "N/A"),
+            "Operating Margins": info.get("operatingMargins", "N/A"),
+            
+            # Trading Info
+            "Bid": info.get("bid", "N/A"),
+            "Ask": info.get("ask", "N/A"),
+            "Bid Size": info.get("bidSize", "N/A"),
+            "Ask Size": info.get("askSize", "N/A"),
+            "Shares Outstanding": info.get("sharesOutstanding", "N/A"),
+            "Float Shares": info.get("floatShares", "N/A"),
         }
         
-        # Filter out N/A values
-        result = {k: v for k, v in data.items() if v not in ["N/A", "", None]}
+        # Filter out N/A values and clean data
+        result = {}
+        for key, value in data.items():
+            if value not in ["N/A", "", None, "None", "null"]:
+                # Convert numbers from strings if needed
+                if isinstance(value, str) and value.replace('.', '', 1).replace('-', '', 1).isdigit():
+                    try:
+                        value = float(value) if '.' in value else int(value)
+                    except:
+                        pass
+                result[key] = value
         
-        if not result:
-            print(f"No valid data retrieved for {stock_symbol}")
-            
+        print(f"Retrieved {len(result)} metrics for {stock_symbol}")
         return result
         
     except Exception as e:
         print(f"Critical error in get_stock_fundamentals for {stock_symbol}: {e}")
         return {}
-
+    
 def get_marketaux_news(stock_symbol: str, num_results: int = 3) -> tuple:
     """Fetch recent news headlines"""
     try:
@@ -267,11 +364,12 @@ def generate_analysis_prompt(fundamentals: dict, news_headlines: list, macro_hea
     {news_str}
     
     Note: After analysing based on the above framework and provided fundamentals and latest news, the output should only return the below points:
-    1. Health score (1-10) (Note:justify your given healthscore)
-    2. Key strengths/risks
-    3. Valuation assessment
+    1. Show key fundamental metrics
+    2. Health score (1-10) (Note:justify your given healthscore)
+    3. Key strengths/risks
+    4. Valuation assessment
     5. Macro factors
-    4. Recommendation (Buy/Hold/Sell) (Note: justify your Recommendation)
+    6. Recommendation (Buy/Hold/Sell) (Note: justify your Recommendation)
 
     """
 
