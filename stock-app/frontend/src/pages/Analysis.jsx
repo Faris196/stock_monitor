@@ -1,7 +1,9 @@
+// pages/Analysis.jsx - Completely redesigned
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
+import { FaArrowLeft, FaRedo, FaChartLine, FaInfoCircle, FaExclamationTriangle } from 'react-icons/fa';
 
 export default function Analysis() {
   const { symbol } = useParams();
@@ -14,6 +16,7 @@ export default function Analysis() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('analysis');
 
   // Retry function with exponential backoff
   const fetchAnalysisWithRetry = async (symbol, retries = 3) => {
@@ -105,68 +108,147 @@ export default function Analysis() {
   };
 
   if (loading) return (
-    <div className="loading-container">
-      <div className="loading-spinner"></div>
-      {retryCount > 0 && (
-        <p style={{ marginTop: '1rem', color: '#666' }}>
-          Attempting retry {retryCount}... (this may take a while)
-        </p>
-      )}
-      <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
-        Analyzing {symbol}... This can take up to a minute.
-      </p>
+    <div className="analysis-page">
+      <div className="loading-container">
+        <div className="loading-spinner-large"></div>
+        {retryCount > 0 && (
+          <p className="retry-message">
+            Attempting retry {retryCount}... (this may take a while)
+          </p>
+        )}
+        <div className="loading-content">
+          <h2>Analyzing {symbol}</h2>
+          <p>This can take up to a minute as we gather comprehensive data</p>
+          <div className="loading-steps">
+            <div className="loading-step active">
+              <div className="step-icon">1</div>
+              <div className="step-text">Fetching market data</div>
+            </div>
+            <div className="loading-step">
+              <div className="step-icon">2</div>
+              <div className="step-text">Analyzing fundamentals</div>
+            </div>
+            <div className="loading-step">
+              <div className="step-icon">3</div>
+              <div className="step-text">Generating insights</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
   
   if (error) return (
-    <div className="card error-message">
-      <h3>Error Loading Analysis</h3>
-      <p>{error}</p>
-      <button 
-        onClick={handleRetry}
-        className="btn btn-primary"
-        style={{ marginTop: '1rem' }}
-      >
-        Try Again
-      </button>
-      <button 
-        onClick={() => navigate(-1)}
-        className="btn btn-outline"
-        style={{ marginTop: '0.5rem', marginLeft: '0.5rem' }}
-      >
-        ← Go Back
-      </button>
+    <div className="analysis-page">
+      <div className="card error-card">
+        <div className="error-icon">
+          <FaExclamationTriangle />
+        </div>
+        <h3>Error Loading Analysis</h3>
+        <p>{error}</p>
+        <div className="error-actions">
+          <button 
+            onClick={handleRetry}
+            className="btn btn-primary"
+          >
+            <FaRedo /> Try Again
+          </button>
+          <button 
+            onClick={() => navigate(-1)}
+            className="btn btn-outline"
+          >
+            <FaArrowLeft /> Go Back
+          </button>
+        </div>
+      </div>
     </div>
   );
 
   return (
-    <div>
+    <div className="analysis-page">
       <div className="stock-header">
         <button 
           onClick={() => navigate(-1)}
-          className="btn btn-outline"
+          className="btn btn-outline back-btn"
         >
-          ← Back to Watchlist
+          <FaArrowLeft /> Back
         </button>
-        <h1>{data.fundamentals?.name || symbol}</h1>
+        <div className="stock-title">
+          <h1>{data.fundamentals?.name || symbol}</h1>
+          <span className="stock-symbol">{symbol}</span>
+        </div>
+        <div className="header-actions">
+          <button 
+            onClick={handleRetry}
+            className="btn btn-outline"
+            title="Refresh analysis"
+          >
+            <FaRedo />
+          </button>
+        </div>
       </div>
       
       {data.chart && (
-        <div className="stock-chart">
-          <img 
-            src={`data:image/png;base64,${data.chart}`} 
-            alt="Price chart" 
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-          />
+        <div className="card chart-card">
+          <div className="card-header">
+            <h2>Price Chart</h2>
+          </div>
+          <div className="stock-chart">
+            <img 
+              src={`data:image/png;base64,${data.chart}`} 
+              alt={`${symbol} price chart`} 
+            />
+          </div>
         </div>
       )}
       
-      <div className="analysis-section">
-        <h2>Analysis</h2>
-        <ReactMarkdown>
-          {data.analysis || 'No analysis available'}
-        </ReactMarkdown>
+      <div className="analysis-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'analysis' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analysis')}
+        >
+          <FaChartLine /> Analysis
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'fundamentals' ? 'active' : ''}`}
+          onClick={() => setActiveTab('fundamentals')}
+        >
+          <FaInfoCircle /> Fundamentals
+        </button>
       </div>
+      
+      {activeTab === 'analysis' ? (
+        <div className="card analysis-card">
+          <div className="card-header">
+            <h2>AI Analysis</h2>
+          </div>
+          <div className="analysis-content">
+            <ReactMarkdown>
+              {data.analysis || 'No analysis available for this stock.'}
+            </ReactMarkdown>
+          </div>
+        </div>
+      ) : (
+        <div className="card fundamentals-card">
+          <div className="card-header">
+            <h2>Fundamental Data</h2>
+          </div>
+          <div className="fundamentals-content">
+            {data.fundamentals && Object.keys(data.fundamentals).length > 0 ? (
+              <div className="fundamentals-grid">
+                {Object.entries(data.fundamentals).map(([key, value]) => (
+                  <div key={key} className="fundamental-item">
+                    <span className="fundamental-label">{key.replace(/_/g, ' ')}</span>
+                    <span className="fundamental-value">{value}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>No fundamental data available.</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

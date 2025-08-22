@@ -1,5 +1,6 @@
+// components/NavBar.jsx - Updated with new design
 import { Link, useLocation } from 'react-router-dom';
-import { FaHome, FaChartLine } from 'react-icons/fa';
+import { FaHome, FaChartLine, FaUser } from 'react-icons/fa';
 
 export default function NavBar() {
   const location = useLocation();
@@ -15,16 +16,21 @@ export default function NavBar() {
           to="/" 
           className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
         >
-          <FaHome className="nav-icon" />
+          <div className="nav-icon-container">
+            <FaHome className="nav-icon" />
+          </div>
           <span className="nav-text">Home</span>
         </Link>
         <Link 
           to="/watchlist" 
           className={`nav-link ${location.pathname === '/watchlist' ? 'active' : ''}`}
         >
-          <FaChartLine className="nav-icon" />
+          <div className="nav-icon-container">
+            <FaChartLine className="nav-icon" />
+          </div>
           <span className="nav-text">Watchlist</span>
         </Link>
+        <div className="nav-indicator"></div>
       </div>
     </nav>
   );
