@@ -86,28 +86,53 @@ def get_stocks():
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_stock():
-    """Endpoint to analyze a stock"""
+    """Endpoint to analyze a stock with better timeout handling"""
     try:
         data = request.json
+        if not data or 'symbol' not in data:
+            return jsonify({'error': 'Missing symbol parameter'}), 400
+            
         symbol = data['symbol']
+        print(f"Starting analysis for: {symbol}")
         
-        # Get fundamentals
-        fundamentals = get_stock_fundamentals(symbol)
+        # Get fundamentals with timeout protection
+        try:
+            fundamentals = get_stock_fundamentals(symbol)
+        except Exception as e:
+            print(f"Fundamentals error for {symbol}: {e}")
+            fundamentals = None
+        
         if not fundamentals:
-            return jsonify({'error': 'Rate limited by Yahoo Finance. Please try again in a moment.',
-                'retryable': True}), 429
+            return jsonify({
+                'error': 'Temporarily unable to fetch stock data. Please try again in a moment.',
+                'retryable': True,
+                'symbol': symbol
+            }), 429
         
-        # Get news
-        news_headlines, _ = get_marketaux_news(symbol.split('.')[0])
+        # Get news (with timeout)
+        try:
+            news_headlines, _ = get_marketaux_news(symbol.split('.')[0])
+        except Exception as e:
+            print(f"News error for {symbol}: {e}")
+            news_headlines = []
         
-        # Generate chart
-        chart = generate_price_chart(symbol)
+        # Generate chart (with timeout)
+        try:
+            chart = generate_price_chart(symbol)
+        except Exception as e:
+            print(f"Chart error for {symbol}: {e}")
+            chart = None
         
-        # Generate analysis
-        prompt = generate_analysis_prompt(fundamentals, news_headlines, [])
-        analysis = analyze_with_gemini(prompt)
+        # Generate analysis (with timeout)
+        try:
+            prompt = generate_analysis_prompt(fundamentals, news_headlines, [])
+            analysis = analyze_with_gemini(prompt)
+        except Exception as e:
+            print(f"Analysis error for {symbol}: {e}")
+            analysis = "Unable to generate analysis at this time. Please try again."
         
-        return jsonify({
+        # Return partial success if some components failed
+        response_data = {
             'fundamentals': {
                 'name': fundamentals.get('Name'),
                 'symbol': symbol,
@@ -118,29 +143,47 @@ def analyze_stock():
                 'priceChange': fundamentals.get('Price Change (%)')
             },
             'chart': chart,
-            'analysis': analysis
-        })
+            'analysis': analysis,
+            'status': 'success',
+            'partial': not all([fundamentals, analysis])  # Indicate if partial data
+        }
+        
+        print(f"Successfully analyzed: {symbol}")
+        return jsonify(response_data)
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Unexpected error in analyze_stock: {e}")
+        return jsonify({
+            'error': 'An unexpected error occurred. Please try again.',
+            'retryable': True
+        }), 500
 
 def get_stock_fundamentals(stock_symbol: str) -> dict:
-    """Fetch comprehensive fundamental data for a stock with rate limiting"""
+    """Fetch comprehensive fundamental data for a stock with timeout"""
     try:
-        # SIGNIFICANT DELAY - CRITICAL FOR RATE LIMITING
-        delay = 15 + random.uniform(0, 5)  # 15-20 second delay
-        print(f"Waiting {delay:.2f} seconds before API call for {stock_symbol}")
+        # Reduced delay to prevent timeouts
+        delay = 3 + random.uniform(0, 2)  # 3-5 second delay
+        print(f"Waiting {delay:.2f} seconds for {stock_symbol}")
         time.sleep(delay)
         
+        # Add timeout to yfinance calls
         stock = yf.Ticker(stock_symbol)
-        info = stock.info
         
-        # Get historical data for trend analysis (shorter period for speed)
+        # Get info with timeout handling
         try:
-            hist = stock.history(period="1mo")  # Only 1 month history
-            price_change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100 if not hist.empty else 0
-        except:
-            price_change = 0
+            info = stock.info
+        except Exception as e:
+            print(f"Error getting info for {stock_symbol}: {e}")
+            info = {}
+        
+        # Get historical data with shorter period and timeout
+        price_change = 0
+        try:
+            hist = stock.history(period="1w")  # Only 1 week for speed
+            if not hist.empty:
+                price_change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100
+        except Exception as e:
+            print(f"Error getting history for {stock_symbol}: {e}")
         
         data = {
             "Name": info.get("shortName", stock_symbol),
@@ -154,11 +197,16 @@ def get_stock_fundamentals(stock_symbol: str) -> dict:
             "Price Change (%)": round(price_change, 2),
         }
         
-        # Filter out N/A values and empty strings
-        return {k: v for k, v in data.items() if v not in ["N/A", "", None]}
+        # Filter out N/A values
+        result = {k: v for k, v in data.items() if v not in ["N/A", "", None]}
+        
+        if not result:
+            print(f"No valid data retrieved for {stock_symbol}")
+            
+        return result
         
     except Exception as e:
-        print(f"Error fetching fundamentals for {stock_symbol}: {e}")
+        print(f"Critical error in get_stock_fundamentals for {stock_symbol}: {e}")
         return {}
 
 def get_marketaux_news(stock_symbol: str, num_results: int = 3) -> tuple:
