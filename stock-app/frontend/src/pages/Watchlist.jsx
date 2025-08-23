@@ -1,8 +1,7 @@
-// pages/Watchlist.jsx - Updated design
+// src/pages/Watchlist.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Select from 'react-select';
 import { FaPlus, FaSearch, FaExchangeAlt } from 'react-icons/fa';
 
 export default function Watchlist() {

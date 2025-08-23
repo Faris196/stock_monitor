@@ -1,6 +1,6 @@
 // components/NavBar.jsx - Updated with new design
 import { Link, useLocation } from 'react-router-dom';
-import { FaHome, FaChartLine, FaUser } from 'react-icons/fa';
+import { FaHome, FaChartLine } from 'react-icons/fa';
 
 export default function NavBar() {
   const location = useLocation();

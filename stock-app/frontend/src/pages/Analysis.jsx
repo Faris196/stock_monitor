@@ -1,5 +1,5 @@
-// pages/Analysis.jsx - Completely redesigned
-import { useState, useEffect } from 'react';
+// src/pages/Analysis.jsx
+import { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
@@ -18,8 +18,8 @@ export default function Analysis() {
   const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState('analysis');
 
-  // Retry function with exponential backoff
-  const fetchAnalysisWithRetry = async (symbol, retries = 3) => {
+  // Wrap fetchAnalysisWithRetry in useCallback to stabilize the reference
+  const fetchAnalysisWithRetry = useCallback(async (symbol, retries = 3) => {
     try {
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/analyze`, {
         symbol: symbol
@@ -65,7 +65,7 @@ export default function Analysis() {
       // Final error after all retries
       throw err;
     }
-  };
+  }, []); // Empty dependency array since it doesn't depend on any state/props
 
   useEffect(() => {
     const fetchAnalysis = async () => {
@@ -98,7 +98,9 @@ export default function Analysis() {
     };
 
     fetchAnalysis();
-  }, [symbol]);
+  }, [symbol, fetchAnalysisWithRetry]); // Added fetchAnalysisWithRetry to dependencies
+
+  // ... rest of the component remains the same
 
   const handleRetry = () => {
     setLoading(true);
