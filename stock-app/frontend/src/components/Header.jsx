@@ -1,9 +1,12 @@
 // src/components/Header.jsx
 import { useLocation, Link } from 'react-router-dom';
-import { LogoWithText } from './Logo'; // Import the logo
+import { LogoWithText } from './Logo';
+import { useTheme } from '../contexts/ThemeContext';
+import { FaMoon, FaSun } from 'react-icons/fa';
 
 export default function Header() {
   const location = useLocation();
+  const { toggleTheme, isDark } = useTheme(); // Remove unused 'theme'
   
   const getTitle = () => {
     if (location.pathname === '/') return 'Dashboard';
@@ -16,12 +19,20 @@ export default function Header() {
     <header className="app-header">
       <div className="header-content">
         <Link to="/" className="logo">
-          <LogoWithText /> {/* logo */}
+          <LogoWithText />
         </Link>
         <h1 className="page-title">{getTitle()}</h1>
         <div className="header-actions">
-          <button className="theme-toggle" aria-label="Toggle theme">
-            <span className="theme-icon">🌙</span>
+          <button 
+            className="theme-toggle" 
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+          >
+            {isDark ? (
+              <FaSun className="theme-icon" />
+            ) : (
+              <FaMoon className="theme-icon" />
+            )}
           </button>
         </div>
       </div>

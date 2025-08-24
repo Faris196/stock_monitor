@@ -97,28 +97,33 @@ export default function Watchlist() {
             />
           </div>
           
-          <div className="stock-options">
-            {loading ? (
-              <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <span>Loading stocks...</span>
-              </div>
-            ) : error ? (
-              <div className="error-message">{error}</div>
-            ) : (
-              <div className="options-list">
-                {filteredStocks.slice(0, 5).map(stock => (
-                  <div 
-                    key={stock.value}
-                    className={`stock-option ${selectedStock?.value === stock.value ? 'selected' : ''}`}
-                    onClick={() => setSelectedStock(stock)}
-                  >
-                    {stock.label}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Only show stock options when user starts typing */}
+          {searchQuery && (
+            <div className="stock-options">
+              {loading ? (
+                <div className="loading-container">
+                  <div className="loading-spinner"></div>
+                  <span>Loading stocks...</span>
+                </div>
+              ) : error ? (
+                <div className="error-message">{error}</div>
+              ) : filteredStocks.length === 0 ? (
+                <div className="no-results">No stocks found matching "{searchQuery}"</div>
+              ) : (
+                <div className="options-list">
+                  {filteredStocks.slice(0, 5).map(stock => (
+                    <div 
+                      key={stock.value}
+                      className={`stock-option ${selectedStock?.value === stock.value ? 'selected' : ''}`}
+                      onClick={() => setSelectedStock(stock)}
+                    >
+                      {stock.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           
           <button 
             onClick={addToWatchlist}

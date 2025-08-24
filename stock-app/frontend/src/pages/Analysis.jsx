@@ -236,12 +236,12 @@ export default function Analysis() {
             <h2>Fundamental Data</h2>
           </div>
           <div className="fundamentals-content">
-            {data.fundamentals && Object.keys(data.fundamentals).length > 0 ? (
+            {data.fundamentals && data.fundamentals.length > 0 ? (
               <div className="fundamentals-grid">
-                {Object.entries(data.fundamentals).map(([key, value]) => (
-                  <div key={key} className="fundamental-item">
-                    <span className="fundamental-label">{key.replace(/_/g, ' ')}</span>
-                    <span className="fundamental-value">{value}</span>
+                {data.fundamentals.map((item) => (
+                  <div key={item.key} className="fundamental-item">
+                    <span className="fundamental-label">{item.key}</span>
+                    <span className="fundamental-value">{item.value}</span>
                   </div>
                 ))}
               </div>

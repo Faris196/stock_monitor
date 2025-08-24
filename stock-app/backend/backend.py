@@ -13,6 +13,8 @@ import pandas as pd
 import os
 import time
 import random
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
 
 # Configuration
 genai.configure(api_key=os.environ.get('GENAI_API_KEY'))
@@ -131,22 +133,53 @@ def analyze_stock():
             print(f"Analysis error for {symbol}: {e}")
             analysis = "Unable to generate analysis at this time. Please try again."
         
+        # DEBUG: Print what we got from Yahoo Finance
+        print("Available keys from Yahoo Finance:")
+        for key, value in fundamentals.items():
+            print(f"  {key}: {value}")
+
         # Return partial success if some components failed
         response_data = {
-            'fundamentals': {
-                'name': fundamentals.get('Name'),
-                'symbol': symbol,
-                'price': fundamentals.get('Current Price'),
-                'pe': fundamentals.get('PE Ratio'),
-                'marketCap': fundamentals.get('Market Cap'),
-                'debtToEquity': fundamentals.get('Debt to Equity'),
-                'priceChange': fundamentals.get('Price Change (%)')
-            },
-            'chart': chart,
-            'analysis': analysis,
-            'status': 'success',
-            'partial': not all([fundamentals, analysis])  # Indicate if partial data
-        }
+    'fundamentals': [
+        # Stock Identity
+        {'key': 'Name', 'value': fundamentals.get('Name')},
+        {'key': 'Symbol', 'value': symbol},
+        {'key': 'Sector', 'value': fundamentals.get('Sector')},
+        
+        # Financial Metrics
+        {'key': 'Market Cap', 'value': format_large_number(fundamentals.get('Market Cap'))},
+        {'key': 'Revenue Growth', 'value': format_number(fundamentals.get('Revenue Growth'), 2) + '%' if fundamentals.get('Revenue Growth') else 'N/A'},
+        
+        # Profitability & Returns
+        {'key': 'EPS', 'value': format_number(fundamentals.get('EPS'), 2)},
+        {'key': 'Profit Margins', 'value': format_number(fundamentals.get('Profit Margins'), 2) + '%' if fundamentals.get('Profit Margins') else 'N/A'},
+        {'key': 'Return On Equity', 'value': format_number(fundamentals.get('Return on Equity'), 2) + '%' if fundamentals.get('Return on Equity') else 'N/A'},
+        {'key': 'Dividend Yield', 'value': format_number(fundamentals.get('Dividend Yield'), 2) + '%' if fundamentals.get('Dividend Yield') else 'N/A'},
+        
+        # Valuation Ratios
+        {'key': 'PE Ratio', 'value': format_number(fundamentals.get('PE Ratio'), 2)},
+        {'key': 'PEG Ratio', 'value': format_number(fundamentals.get('PEG Ratio'), 2)},
+        {'key': 'Price To Book', 'value': format_number(fundamentals.get('Price to Book'), 2)},
+        {'key': 'Beta', 'value': format_number(fundamentals.get('Beta'), 2)},
+        
+        # Financial Health
+        {'key': 'Debt To Equity', 'value': format_number(fundamentals.get('Debt to Equity'), 2)},
+        
+        # Price & Valuation
+        {'key': 'Current Price', 'value': format_number(fundamentals.get('Current Price'))},
+        {'key': '52 Week High', 'value': format_number(fundamentals.get('52 Week High'))},
+        {'key': '52 Week Low', 'value': format_number(fundamentals.get('52 Week Low'))},
+        {'key': 'Target Price', 'value': format_number(fundamentals.get('Target Price'))},
+        {'key': 'Price Change (%)', 'value': format_number(fundamentals.get('Price Change (%)'), 2) + '%' if fundamentals.get('Price Change (%)') else 'N/A'},
+        
+        # Trading Info
+        {'key': 'Volume', 'value': format_large_number(fundamentals.get('Volume'))}
+    ],
+    'chart': chart,
+    'analysis': analysis,
+    'status': 'success',
+    'partial': not all([fundamentals, analysis])
+}
         
         print(f"Successfully analyzed: {symbol}")
         return jsonify(response_data)
@@ -157,7 +190,41 @@ def analyze_stock():
             'error': 'An unexpected error occurred. Please try again.',
             'retryable': True
         }), 500
+    
+def format_number(value, decimals=2):
+    """Format numbers with commas and decimal places"""
+    if value is None or value == "N/A":
+        return "N/A"
+    
+    try:
+        # Handle both string and numeric values
+        num_value = float(value) if isinstance(value, str) else value
+        
+        if decimals == 0:
+            return f"{int(num_value):,}"
+        else:
+            return f"{num_value:,.{decimals}f}"
+    except (ValueError, TypeError):
+        return "N/A"
 
+def format_large_number(value):
+    """Format very large numbers in a readable way (Lakhs, Crores)"""
+    if value is None or value == "N/A":
+        return "N/A"
+    
+    try:
+        num_value = float(value) if isinstance(value, str) else value
+        
+        # Indian numbering system: Lakhs (1,00,000) and Crores (1,00,00,000)
+        if num_value >= 1_00_00_000:  # 1 Crore (10 Million)
+            return f"{num_value/1_00_00_000:.2f} Cr"
+        elif num_value >= 1_00_000:  # 1 Lakh (100,000)
+            return f"{num_value/1_00_000:.2f} L"
+        else:
+            return f"{num_value:,.0f}"
+    except (ValueError, TypeError):
+        return "N/A"
+    
 def get_stock_fundamentals(stock_symbol: str) -> dict:
     """Fetch comprehensive fundamental data for a stock with maximum metrics"""
     try:
