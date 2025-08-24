@@ -132,11 +132,6 @@ def analyze_stock():
         except Exception as e:
             print(f"Analysis error for {symbol}: {e}")
             analysis = "Unable to generate analysis at this time. Please try again."
-        
-        # DEBUG: Print what we got from Yahoo Finance
-        print("Available keys from Yahoo Finance:")
-        for key, value in fundamentals.items():
-            print(f"  {key}: {value}")
 
         # Return partial success if some components failed
         response_data = {
